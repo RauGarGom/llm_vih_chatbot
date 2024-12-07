@@ -19,8 +19,7 @@ DB_CONFIG = {
 }
 
 class FormularioRequest(BaseModel):
-    tipo_usuario: str
-    edad: int = Field(..., gt=0, description="Edad del usuario ( mayor a 0)")
+    edad: int = Field(..., gt=0, description="Edad del usuario (mayor a 0)")
     pais_origen: str
     ccaa: str
     municipio_residencia: str
@@ -34,7 +33,6 @@ class FormularioRequest(BaseModel):
     como_conocio_felgtbi: str
 
 class FormularioProfesionalRequest(BaseModel):
-    tipo_usuario : str
     municipio_residencia: str
     ccaa: str
     ambito_laboral: str
@@ -69,15 +67,15 @@ def insertar_respuesta(formulario: FormularioRequest, request: Request):
             INSERT INTO respuestas_usuarios (
                 direccion_ip, tipo_usuario, municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
                 vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
-                us_hablado, pro_ambito, pro_especialidad, pro_vih_profesional
+                us_hablado
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
         
         valores = (
             ip,
-            formulario.tipo_usuario,
+            "usuario",
             formulario.municipio_residencia,
             formulario.ccaa,
             formulario.como_conocio_felgtbi,
@@ -129,7 +127,7 @@ async def insertar_respuesta_profesional(formulario: FormularioProfesionalReques
         # Recoger los datos del formulario para insertar en la base de datos
         valores = (
             ip,  
-            formulario.tipo_usuario,
+            "sociosanitario",
             formulario.municipio_residencia,  
             formulario.ccaa,  
             formulario.como_conocio_felgtbi,  
@@ -138,7 +136,7 @@ async def insertar_respuesta_profesional(formulario: FormularioProfesionalReques
             formulario.vih_tratamiento, 
             formulario.ambito_laboral,  
             formulario.especialidad,  
-            formulario.ha_tratado_vih == "Sí", 
+            formulario.ha_tratado_vih, 
         )
 
         cursor.execute(query, valores)
