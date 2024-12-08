@@ -1,17 +1,40 @@
-import cohere  #LLLM used for the development of the application
 from langchain_cohere import ChatCohere
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, HTTPException, Form
-from langchain.prompts.few_shot import FewShotPromptTemplate #for creating prompts with few-shot examples
-from langchain.prompts.prompt import PromptTemplate #for formatting the few-shot examples
-from langchain.prompts import FewShotChatMessagePromptTemplate
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+import psycopg2
+
+
 load_dotenv()
 cohere_api_key = os.getenv("COHERE_TRIAL_API_KEY")
+
+DB_CONFIG = {
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+}
+
+def get_db_connection():
+    conn = psycopg2.connect(
+        user=DB_CONFIG["user"],
+        password=DB_CONFIG["password"],
+        host=DB_CONFIG["host"],
+        port=DB_CONFIG["port"],
+    )
+    return conn
+
+def db_insert_values(id_usuario,usuario,contenido):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO interacciones (id_usuario,usuario,contenido)
+    VALUES (%s, %s, %s)
+    ''',
+    (id_usuario,usuario,contenido)
+    )
+    conn.commit()
+    conn.close()
 
 def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
              vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
@@ -19,7 +42,7 @@ def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usua
 
     #We define the Cohere llm
     llm = ChatCohere(cohere_api_key=cohere_api_key) #Aquí podemos limitar los tokens con max_tokens 
-
+    db_insert_values("999999999999","usuario",pregunta_usuario)
     #We create the prompt template
     template = ChatPromptTemplate([
         ("system", '''You are a Spanish expert chatbot of vih, who offers information resources, outreach resources and emotional support resources to users that need you to help them.
@@ -39,4 +62,31 @@ def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usua
                                      "us_genero":us_genero, "us_orientacion": us_orientacion, "us_situacion_afectiva":us_situacion_afectiva,
                                      "us_hablado":us_hablado})
     response = llm.invoke(prompt_value)
+    db_insert_values("999999999999","sistema",response.content)
+    return response.content
+
+def vih_chat_profesional(pregunta_profesional,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
+             vih_tratamiento, pro_ambito, pro_especialidad, pro_vih_profesional):    
+
+    #We define the Cohere llm
+    llm = ChatCohere(cohere_api_key=cohere_api_key) #Aquí podemos limitar los tokens con max_tokens 
+    db_insert_values("999999999999","profesional",pregunta_profesional)
+    #We create the prompt template
+    template = ChatPromptTemplate([
+        ("system", '''You are a Spanish expert chatbot of vih, who offers information resources, outreach resources and emotional support resources to users that need you to help them.
+         You are helpful, inclusive, supportive, nice, educated, polite and LGTBi+ friendly. You should use a somewhat technical jargon, because the user is a socio-sanitary worker. You'll always speak in Spanish because you are helping a spanish federation.
+         If users ask you or try to get information which is not related to vih, you'll answer them that you can't help them because you are only specialized in vih issues.
+         Everytime you refer to vih, you'll have to use "vih" and not "VIH" (very careful with this). At the bottom of the answer you must include some references from FELGTBI+ or public sources.
+         '''),
+        ("system", "You must always answer in Spanish, no matter the language of the input. Answer the question {pregunta_profesional}."),
+        ("human", '''Hello, I'm a socio-sanitary worker helping a patient. The patient lives in {municipio}, in {ccaa}. About whether they have vih, the answer is {vih_usuario}
+         and, if so, they were diagnosed {vih_diagnostico} ago, if so, they started treatment {vih_tratamiento} ago.
+         I'm working in {pro_ambito}, and my field of knowledge is {pro_especialidad}. To whether I've treated before with vih patients, the answer is {pro_vih_profesional}.
+          ''')        
+    ])
+    prompt_value = template.invoke({"pregunta_profesional":pregunta_profesional,"municipio":municipio, "ccaa":ccaa, "conocer_felgtbi":conocer_felgtbi, "vih_usuario":vih_usuario,
+                                    "vih_diagnostico":vih_diagnostico, "vih_tratamiento":vih_tratamiento, "pro_ambito":pro_ambito,"pro_especialidad":pro_especialidad,
+                                    "pro_vih_profesional":pro_vih_profesional})
+    response = llm.invoke(prompt_value)
+    db_insert_values("999999999999","sistema",response.content)
     return response.content
