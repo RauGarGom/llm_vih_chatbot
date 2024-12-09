@@ -2,3 +2,4 @@
 .mypy_cache
 *.ipynb
 __pycache__
+.dockerignore

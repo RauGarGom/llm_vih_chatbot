@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
 from model import vih_chat_usuario, vih_chat_profesional
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 
@@ -83,6 +84,15 @@ def get_db_connection():
     return conn
     
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir cualquier origen
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, DELETE, etc.)
+    allow_headers=["*"],  # Permitir todas las cabeceras
+)
+
 @app.get('/')
 async def home():
     return "Test API. Si ves esto, funciona!"

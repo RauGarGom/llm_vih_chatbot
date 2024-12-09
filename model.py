@@ -1,8 +1,8 @@
-from langchain_cohere import ChatCohere
+from langchain_cohere import ChatCohere #type: ignore
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from dotenv import load_dotenv
-import psycopg2
+import psycopg2 #type: ignore
 
 
 load_dotenv()
@@ -37,8 +37,8 @@ def db_insert_values(id_usuario,usuario,contenido):
     conn.close()
 
 def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
-             vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
-             us_hablado):    
+                vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
+                us_hablado):    
 
     #We define the Cohere llm
     llm = ChatCohere(cohere_api_key=cohere_api_key) #Aquí podemos limitar los tokens con max_tokens 
