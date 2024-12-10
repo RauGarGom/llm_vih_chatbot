@@ -6,7 +6,7 @@ import psycopg2 #type: ignore
 from psycopg2.extras import RealDictCursor #type: ignore
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
-from model import vih_chat_usuario, vih_chat_profesional
+from model import vih_chat_usuario, vih_chat_profesional, llm_decisor
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -75,6 +75,11 @@ class ChatbotProRequest(BaseModel):
     pro_ambito: str
     pro_especialidad: str
     pro_vih_profesional: str
+
+class DecisorRequest(BaseModel):
+    id_sesion: str
+    user_input: str
+
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -221,6 +226,14 @@ async def chatbot_profesional(data:ChatbotProRequest,request: Request):
         respuesta_chat = vih_chat_profesional(ip,data.pregunta_profesional,data.municipio, data.ccaa, data.conocer_felgtbi, data.vih_usuario, data.vih_diagnostico,
                 data.vih_tratamiento, data.pro_ambito, data.pro_especialidad, data.pro_vih_profesional)
         return {"status": "success", "respuesta_chat": respuesta_chat}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar una respuesta: {e}")
+    
+@app.post('/prompt_decisor')
+async def prompt_decisor(data:DecisorRequest):
+    try:
+        output_decisor = llm_decisor(data.id_sesion,data.user_input)
+        return {"status": "success", "outpuut": output_decisor}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar una respuesta: {e}")
 
