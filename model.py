@@ -151,6 +151,12 @@ def llm_decisor(id_sesion, user_input):
                    "message":"Siento tu malestar, no estás solo/a"
                    }
     },
+    {"input": "No sé a quién contarle que tengo vih", 
+        "output": {"tipo": "cerrada",
+                   "categoria": "apoyo",
+                   "message":"No te preocupes, no estás solo/a. Estamos aquí para ayudarte."
+                   }
+    },
     {"input": "Estoy preocupada", 
         "output": {"tipo": "abierta",
             "categoria":"",
@@ -183,7 +189,8 @@ def llm_decisor(id_sesion, user_input):
     example_prompt = PromptTemplate(
         input_variables=["input", "output"],
         template= '''Analiza el input del usuario y determina si la cuestión es de tipo "abierta" o "cerrada". En caso de ser cerrada, categoriza
-        como "apoyo" o "divulgacion". Si es de tipo "abierta", sigue preguntando hasta que consideres la cuestión como tipo "cerrada".''',
+        como "apoyo" o "divulgacion". Si es de tipo "abierta", sigue preguntando hasta que consideres la cuestión como tipo "cerrada".
+        Si la cuestión es cerrada, no hagas ninguna pregunta final en el mensaje. Un prompt externo se encargará de ello.''',
         partial_variables={"format_instructions": format_instructions}
     )
 
@@ -206,7 +213,9 @@ def llm_decisor(id_sesion, user_input):
         de forma muy, muy educada y comprensiva, le dirás que no le puedes ayudar en ese tema. Cada vez que te refieras al vih, lo 
         harás en minúscula (nunca pondrás VIH en mayúscula) porque estamos luchando por abolir el estigma de dicha enfermedad. 
         No queremos que incluyas ningún tipo de pregunta en el 'message' (nada de dejar posibilidad a que el usuario tenga que darte
-        otra respuesta), A NO SER QUE EL TIPO SEA "abierta. Si el tipo es 'cerrada', tu fin es cerrar la conversación
+        otra respuesta), si determinas que el tipo es "cerrada". Si determinas que el tipo es "cerrada", tu fin es cerrar la conversación. No des ningún tipo de solución o respuesta
+        si determinas que el tipo es "cerrada", ya que lo hará un prompt subsiguiente. Nunca realices preguntas en el Output si determinas que el tipo de respuesta
+        es "cerrada".
         ''',
         suffix="{input}\nOutput:",
         input_variables=["input"]
