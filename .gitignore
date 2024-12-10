@@ -1,4 +1,3 @@
 .env
 .mypy_cache
-*.ipynb
 __pycache__
