@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-
+### VARIABLES DE ENTORNO Y CONFIG INICIAL
 
 load_dotenv()
 
@@ -21,6 +21,27 @@ DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
 }
+
+def get_db_connection():
+    conn = psycopg2.connect(
+        user=DB_CONFIG["user"],
+        password=DB_CONFIG["password"],
+        host=DB_CONFIG["host"],
+        port=DB_CONFIG["port"],
+    )
+    return conn
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir cualquier origen
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, DELETE, etc.)
+    allow_headers=["*"],  # Permitir todas las cabeceras
+)
+
+### DEFINICIÓN DE CLASES
 
 class FormularioRequest(BaseModel):
     id_sesion: str
@@ -81,28 +102,12 @@ class DecisorRequest(BaseModel):
     user_input: str
 
 
-def get_db_connection():
-    conn = psycopg2.connect(
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        host=DB_CONFIG["host"],
-        port=DB_CONFIG["port"],
-    )
-    return conn
-    
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Permitir cualquier origen
-    allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, DELETE, etc.)
-    allow_headers=["*"],  # Permitir todas las cabeceras
-)
+### ENDPOINTS BASE Y FORMULARIOS CERRADOS
 
 @app.get('/')
 async def home():
     return "Backend FELGTBI. v1.2. Consulta docs para las llamadas de la API"
+
 
 
 @app.post("/respuesta-usuario")
@@ -206,7 +211,7 @@ async def insertar_respuesta_profesional(formulario: FormularioProfesionalReques
         cursor.close()
         conn.close()
 
-
+### ENDPOINTS DE LLM
 
 @app.post('/chatbot_usuario')
 async def chatbot_usuario(data:ChatbotUserRequest,request: Request):
