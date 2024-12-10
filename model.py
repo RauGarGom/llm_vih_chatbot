@@ -24,25 +24,25 @@ def get_db_connection():
     )
     return conn
 
-def db_insert_values(id_usuario,usuario,contenido):
+def db_insert_values_mvp(id_sesion,tipo_usuario,contenido,tipo_prompt):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO interacciones (id_usuario,usuario,contenido)
-    VALUES (%s, %s, %s)
+    INSERT INTO interacciones (id_sesion,tipo_usuario,contenido,tipo_prompt)
+    VALUES (%s, %s, %s, %s)
     ''',
-    (id_usuario,usuario,contenido)
+    (id_sesion,tipo_usuario,contenido,tipo_prompt)
     )
     conn.commit()
     conn.close()
 
-def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
+def vih_chat_usuario(direccion_ip,pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
                 vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
                 us_hablado):    
 
     #We define the Cohere llm
     llm = ChatCohere(cohere_api_key=cohere_api_key) #Aquí podemos limitar los tokens con max_tokens 
-    db_insert_values("999999999999","usuario",pregunta_usuario)
+    db_insert_values_mvp(direccion_ip,"usuario",pregunta_usuario,"llm_mvp")
     #We create the prompt template
     template = ChatPromptTemplate([
         ("system", '''You are a Spanish expert chatbot of vih, who offers information resources, outreach resources and emotional support resources to users that need you to help them.
@@ -62,15 +62,15 @@ def vih_chat_usuario(pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usua
                                      "us_genero":us_genero, "us_orientacion": us_orientacion, "us_situacion_afectiva":us_situacion_afectiva,
                                      "us_hablado":us_hablado})
     response = llm.invoke(prompt_value)
-    db_insert_values("999999999999","sistema",response.content)
+    db_insert_values_mvp(direccion_ip,"sistema",response.content,"llm_mvp")
     return response.content
 
-def vih_chat_profesional(pregunta_profesional,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
+def vih_chat_profesional(direccion_ip,pregunta_profesional,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
              vih_tratamiento, pro_ambito, pro_especialidad, pro_vih_profesional):    
 
     #We define the Cohere llm
     llm = ChatCohere(cohere_api_key=cohere_api_key) #Aquí podemos limitar los tokens con max_tokens 
-    db_insert_values("999999999999","profesional",pregunta_profesional)
+    db_insert_values_mvp(direccion_ip,"sociosanitario",pregunta_profesional,"llm_mvp")
     #We create the prompt template
     template = ChatPromptTemplate([
         ("system", '''You are a Spanish expert chatbot of vih, who offers information resources, outreach resources and emotional support resources to users that need you to help them.
@@ -88,5 +88,5 @@ def vih_chat_profesional(pregunta_profesional,municipio, ccaa, conocer_felgtbi, 
                                     "vih_diagnostico":vih_diagnostico, "vih_tratamiento":vih_tratamiento, "pro_ambito":pro_ambito,"pro_especialidad":pro_especialidad,
                                     "pro_vih_profesional":pro_vih_profesional})
     response = llm.invoke(prompt_value)
-    db_insert_values("999999999999","sistema",response.content)
+    db_insert_values_mvp(direccion_ip,"sistema",response.content,"llm_mvp")
     return response.content

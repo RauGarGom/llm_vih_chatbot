@@ -1,0 +1,5 @@
+.ipynb
+.env
+.gitignore
+actas/
+__pycache__/

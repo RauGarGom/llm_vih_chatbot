@@ -23,6 +23,7 @@ DB_CONFIG = {
 }
 
 class FormularioRequest(BaseModel):
+    id_sesion: str
     edad: int = Field(..., gt=0, description="Edad del usuario (mayor a 0)")
     pais_origen: str
     ccaa: str
@@ -37,6 +38,7 @@ class FormularioRequest(BaseModel):
     como_conocio_felgtbi: str
 
 class FormularioProfesionalRequest(BaseModel):
+    id_sesion: str
     municipio_residencia: str
     ccaa: str
     ambito_laboral: str
@@ -95,7 +97,7 @@ app.add_middleware(
 
 @app.get('/')
 async def home():
-    return "Test API. Si ves esto, funciona!"
+    return "Backend FELGTBI. v1.2. Consulta docs para las llamadas de la API"
 
 
 @app.post("/respuesta-usuario")
@@ -110,16 +112,17 @@ def insertar_respuesta(formulario: FormularioRequest, request: Request):
 
         query = """
             INSERT INTO respuestas_usuarios (
-                direccion_ip, tipo_usuario, municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
+                direccion_ip, id_sesion, tipo_usuario, municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
                 vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
                 us_hablado
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
         
         valores = (
             ip,
+            formulario.id_sesion,
             "usuario",
             formulario.municipio_residencia,
             formulario.ccaa,
@@ -162,16 +165,17 @@ async def insertar_respuesta_profesional(formulario: FormularioProfesionalReques
         # Consulta SQL para insertar los datos en la base de datos
         query = """
             INSERT INTO respuestas_usuarios (
-                direccion_ip, tipo_usuario, municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
+                direccion_ip, id_sesion, tipo_usuario, municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
                 vih_tratamiento, pro_ambito, pro_especialidad, pro_vih_profesional
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
         
         # Recoger los datos del formulario para insertar en la base de datos
         valores = (
-            ip,  
+            ip, 
+            formulario.id_sesion, 
             "sociosanitario",
             formulario.municipio_residencia,  
             formulario.ccaa,  
@@ -200,9 +204,10 @@ async def insertar_respuesta_profesional(formulario: FormularioProfesionalReques
 
 
 @app.post('/chatbot_usuario')
-async def chatbot_usuario(data:ChatbotUserRequest):
+async def chatbot_usuario(data:ChatbotUserRequest,request: Request):
+    ip = request.client.host if request.client else "0.0.0.0"  
     try:
-        respuesta_chat = vih_chat_usuario(data.pregunta_usuario,data.municipio, data.ccaa, data.conocer_felgtbi, data.vih_usuario, data.vih_diagnostico,
+        respuesta_chat = vih_chat_usuario(ip,data.pregunta_usuario,data.municipio, data.ccaa, data.conocer_felgtbi, data.vih_usuario, data.vih_diagnostico,
                 data.vih_tratamiento, data.us_edad, data.us_pais_origen, data.us_genero, data.us_orientacion, data.us_situacion_afectiva,
                 data.us_hablado)
         return {"status": "success", "respuesta_chat": respuesta_chat}
@@ -210,9 +215,10 @@ async def chatbot_usuario(data:ChatbotUserRequest):
         raise HTTPException(status_code=500, detail=f"Error al generar una respuesta: {e}")
 
 @app.post('/chatbot_profesional')
-async def chatbot_profesional(data:ChatbotProRequest):
+async def chatbot_profesional(data:ChatbotProRequest,request: Request):
+    ip = request.client.host if request.client else "0.0.0.0"
     try:
-        respuesta_chat = vih_chat_profesional(data.pregunta_profesional,data.municipio, data.ccaa, data.conocer_felgtbi, data.vih_usuario, data.vih_diagnostico,
+        respuesta_chat = vih_chat_profesional(ip,data.pregunta_profesional,data.municipio, data.ccaa, data.conocer_felgtbi, data.vih_usuario, data.vih_diagnostico,
                 data.vih_tratamiento, data.pro_ambito, data.pro_especialidad, data.pro_vih_profesional)
         return {"status": "success", "respuesta_chat": respuesta_chat}
     except Exception as e:
