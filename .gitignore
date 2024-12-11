@@ -1,4 +1,5 @@
 .env
 .mypy_cache
 __pycache__
-Manipulacion_BBDD.ipynb
+.dockerignore
+!pruebas_arbol.ipynb
