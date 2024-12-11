@@ -6,7 +6,7 @@ import psycopg2 #type: ignore
 from psycopg2.extras import RealDictCursor #type: ignore
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
-from model import vih_chat_usuario, vih_chat_profesional, llm_decisor, llm_limpiador
+from model import vih_chat_usuario, vih_chat_profesional, llm_decisor, llm_limpiador, model_arbol_interaction
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -104,6 +104,9 @@ class DecisorRequest(BaseModel):
 class ArbolRequest(BaseModel):
     id_sesion: str
     primera_ejecucion: bool
+    user_input: str
+    final: bool
+    dict_preg_resp: dict
 
 ### ENDPOINTS BASE Y FORMULARIOS CERRADOS
 
@@ -249,14 +252,17 @@ async def prompt_decisor(data:DecisorRequest):
 async def prompt_decisor(data:ArbolRequest):
     id_sesion = data.id_sesion
     primera_ejecucion = data.primera_ejecucion
+    user_input = data.user_input
+    final = data.final
+    dict_preg_resp_restado = data.dict_preg_resp
     try:
         if primera_ejecucion == True:
             preguntas_limpias = llm_limpiador(id_sesion)
-            ### E introducir función de Tamara
+            resp, dict_preg_resp, final = model_arbol_interaction(id_sesion,preguntas_limpias,user_input,final)
         else:
-            ### Introducir función de Tamara
+            resp, dict_preg_resp, final = model_arbol_interaction(id_sesion,dict_preg_resp_restado,user_input,final)
 
-        return {"status": "success", "outpuut": output_decisor}
+        return {"status": "success", "outpuut": resp, "dict_preg_resp": dict_preg_resp, "final":final}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar una respuesta: {e}")
 
