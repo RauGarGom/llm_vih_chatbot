@@ -112,7 +112,7 @@ class ArbolRequest(BaseModel):
 
 @app.get('/')
 async def home():
-    return "Backend FELGTBI. v1.2. Consulta docs para las llamadas de la API"
+    return "Backend FELGTBI. v3. Consulta docs para las llamadas de la API"
 
 
 
