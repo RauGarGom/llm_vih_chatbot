@@ -1,11 +1,19 @@
+###
+### IMPORTS :
+###
+
 from langchain_cohere import ChatCohere #type: ignore
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain.prompts import PromptTemplate, FewShotPromptTemplate
 import os
 from dotenv import load_dotenv
+import pandas as pd
 import psycopg2 #type: ignore
 
+###
+### RECOGIDA DE CLAVES PRIVADAS -> (.env) :
+###
 
 load_dotenv()
 cohere_api_key = os.getenv("COHERE_TRIAL_API_KEY")
@@ -17,6 +25,10 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT"),
 }
 
+###
+### CONEXIÓN CON LA BASE DE DATOS :
+###
+
 def get_db_connection():
     conn = psycopg2.connect(
         user=DB_CONFIG["user"],
@@ -25,6 +37,10 @@ def get_db_connection():
         port=DB_CONFIG["port"],
     )
     return conn
+
+###
+### INSERCIÓN DE DATOS SQL (CHATBOT):
+###
 
 def db_insert_values_mvp(id_sesion,tipo_usuario,contenido,tipo_prompt):
     conn = get_db_connection()
@@ -37,6 +53,10 @@ def db_insert_values_mvp(id_sesion,tipo_usuario,contenido,tipo_prompt):
     )
     conn.commit()
     conn.close()
+
+###
+### FUNCIONES DE CHATBOT MVP (USUARIO):
+###
 
 def vih_chat_usuario(direccion_ip,pregunta_usuario,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
                 vih_tratamiento, us_edad, us_pais_origen, us_genero, us_orientacion, us_situacion_afectiva,
@@ -67,6 +87,10 @@ def vih_chat_usuario(direccion_ip,pregunta_usuario,municipio, ccaa, conocer_felg
     db_insert_values_mvp(direccion_ip,"sistema",response.content,"llm_mvp")
     return response.content
 
+###
+### FUNCIONES DE CHATBOT MVP (PROFESIONAL):
+###
+
 def vih_chat_profesional(direccion_ip,pregunta_profesional,municipio, ccaa, conocer_felgtbi, vih_usuario, vih_diagnostico,
              vih_tratamiento, pro_ambito, pro_especialidad, pro_vih_profesional):    
 
@@ -93,6 +117,10 @@ def vih_chat_profesional(direccion_ip,pregunta_profesional,municipio, ccaa, cono
     db_insert_values_mvp(direccion_ip,"sistema",response.content,"llm_mvp")
     return response.content
 
+###
+### FUNCIONES DE PROMPT DECISOR :
+###
+
 def info_tipo_usuario(id_sesion):
     '''
     Buscamos, a partir del id de la sesión, el tipo de usuario correspondiente a esa sesión (usuario normal/sociosanitario)
@@ -117,6 +145,11 @@ def info_tipo_usuario(id_sesion):
     
     return tipo_usuario[0]
 
+###
+### FUNCIONES DE PROMPT DECISOR
+###
+
+# Inserción de valores 
 def db_insert_values_decisor(id_sesion, tipo_usuario, contenido, tipo_user_message, categoria_user_message, tipo_prompt):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -129,6 +162,7 @@ def db_insert_values_decisor(id_sesion, tipo_usuario, contenido, tipo_user_messa
     conn.commit()
     conn.close()
 
+# Configuración LLM DECISOR
 def llm_decisor(id_sesion, user_input):
     '''
     El modelo, frente a la consulta del usuario ('user_input'), devuelve: 
@@ -237,3 +271,148 @@ def llm_decisor(id_sesion, user_input):
     db_insert_values_decisor(id_sesion, "sistema",parsed_output['message'],"","","decisor")
    
     return parsed_output
+
+
+###
+### FUNCIONES DE PROMPT LIMPIADOR
+###
+
+def db_get_questions():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # query = ''' SELECT * FROM respuestas_usuarios '''
+    query = '''
+    SELECT pr.id_pregunta, pr.usuario, pr.contenido as pregunta_contenido, pr.categoria,
+    rs.contenido as respuesta_contenido, rs.id_respuesta, rs.id_pregunta, pr.activa FROM preguntas as pr
+    LEFT JOIN respuestas as rs on pr.id_pregunta = rs.id_pregunta
+    '''
+    # cursor.fetchall()
+    preguntas = pd.read_sql(query,conn)
+    print(cursor)
+    conn.close()
+    return preguntas
+
+def db_user_context(id_sesion):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # query = ''' SELECT * FROM respuestas_usuarios '''
+    cursor.execute('''
+        SELECT *
+        FROM respuestas_usuarios
+        WHERE id_sesion = %s
+        ORDER BY id_respuesta_usuario DESC LIMIT 1
+        ''', (id_sesion,))
+    desc = cursor.description
+    column_names = [col[0] for col in desc]
+    data = [dict(zip(column_names, row))  
+            for row in cursor.fetchall()]
+    conn.close()
+    return data[0]
+
+def db_user_interaction(id_sesion):
+    '''
+    Función que devuelve la interacción del usuario para el que tenemos su id_sesión
+    '''
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT *
+        FROM interacciones
+        WHERE id_sesion = %s and tipo_usuario != 'sistema' and tipo_user_message = 'cerrada'
+        ''', (id_sesion,))
+    desc = cursor.description
+    column_names = [col[0] for col in desc]
+    data = [dict(zip(column_names, row))
+            for row in cursor.fetchall()]
+    conn.close()
+    return data[0]
+
+def diccionario_final_arbol(preguntas):
+    df_preguntas = db_get_questions()
+    claves = eval(preguntas)
+    preguntas_filtradas = list(df_preguntas[df_preguntas['id_pregunta'].iloc[: , 0].isin(claves)]['pregunta_contenido'].unique())
+    dict_def = {}
+    for pregunta in preguntas_filtradas:
+        respuestas = df_preguntas[df_preguntas["pregunta_contenido"] == pregunta]["respuesta_contenido"].tolist()
+        dict_def[pregunta] = respuestas
+    return dict_def
+
+def llm_limpiador(id_sesion):
+     # Obtener contexto del usuario
+     info_user = db_user_context(id_sesion)
+     info_interaction = db_user_interaction(id_sesion)
+     categoria_user_message = info_interaction['categoria_user_message']
+     tipo_usuario = info_user['tipo_usuario']
+     municipio = info_user['municipio']
+     ccaa = info_user['ccaa']
+     vih_usuario = info_user['vih_usuario']
+     us_edad = info_user['us_edad']
+     us_pais_origen = info_user['us_pais_origen']
+     us_genero = info_user['us_genero']
+     us_orientacion = info_user['us_orientacion']
+     us_situacion_afectiva = info_user['us_situacion_afectiva']
+     us_hablado = info_user['us_hablado']
+     pro_ambito = info_user['pro_ambito']
+     pro_especialidad = info_user['pro_especialidad']
+     pro_vih_profesional = info_user['pro_vih_profesional']
+
+     # Obtener preguntas activas
+     df_preguntas = db_get_questions()
+     preguntas_unicas = df_preguntas[
+          (df_preguntas['categoria'] == categoria_user_message) &
+          (df_preguntas['usuario'] == tipo_usuario) &
+          (df_preguntas['activa'] == True)
+     ][['pregunta_contenido','id_pregunta']].drop_duplicates()
+     lista_preguntas = preguntas_unicas['pregunta_contenido'].tolist()
+     lista_ids = preguntas_unicas['id_pregunta'].iloc[:,0].tolist()
+     dict_preguntas = {}
+     for i in range(len(lista_preguntas)):
+          dict_preguntas[lista_ids[i]] = lista_preguntas[i]
+     dict_preguntas
+
+     # Configuración del LLM
+     cohere_api_key = os.getenv("COHERE_TRIAL_API_KEY")
+     llm = ChatCohere(cohere_api_key=cohere_api_key, temperature=0, model='command-r-plus')
+
+     # Template del prompt
+     prompt = f"""
+     Recibes un diccionario de preguntas: {dict_preguntas}. La clave es el ID de la pregunta, y el valor es el texto de la pregunta.
+     Tu tarea es filtrar las preguntas de acuerdo con el contexto del usuario, siguiendo las siguientes reglas:
+
+     1. **Filtrado por vih**:
+     - Si el usuario **NO** tiene vih, elimina todas las preguntas relacionadas con padecer dicha enfermedad y pasas al filtrado de género.
+
+     - Si el usuario **SI** tiene vih, lanzas las preguntas relacionadas con padecer dicha enfermedad y pasas al filtrado de género.
+
+     2. **Filtrado por género**:
+
+          - **Género masculino**: Si el género del usuario es **masculino**, elimina preguntas que no sean relevantes para este género. Por ejemplo, si una pregunta está relacionada con aspectos específicos de la biología femenina (como embarazo, periodo, etc), elimínala. Es decir, solo mantén preguntas que sean pertinentes a la biología o situaciones de los hombres.
+
+          - **Género femenino**: Si el género del usuario es **femenino**, elimina preguntas que no sean relevantes para este género. Por ejemplo, si una pregunta está relacionada con aspectos específicos de la biología masculina (como próstata), elimínala. Es decir, solo mantén preguntas que sean pertinentes a la biología o situaciones de las mujeres.
+
+          - **Género no binario**: Si el género del usuario es **no binario**, elimina preguntas que se refieran de manera exclusiva a biología o situaciones de los géneros masculinos o femeninos. Este género no se asocia con los aspectos tradicionales de los géneros binarios, por lo que solo se deben incluir preguntas de carácter general o que no dependan del género biológico.
+
+          - **Prefiero no decirlo**: Si el usuario seleccionó **prefiero no decirlo** como género, elimina preguntas que estén asociadas con un género específico, ya que no se puede asumir el género del usuario. Solo incluye preguntas que no dependan de un género específico.
+
+     **Importante**: No modifiques el texto de las preguntas. Solo elimina las preguntas según las reglas mencionadas. Nunca debes modificar el contenido de las preguntas, solo eliminarlas si no son relevantes según el contexto.
+
+     **Importante**: No escribirás VIH en mayúsculas en ningún caso ya que estamos desestigmatizando dicha enfermedad.
+
+     Información del usuario:
+     Tipo: {tipo_usuario}, Municipio: {municipio}, CCAA: {ccaa}, Edad: {us_edad}, País de origen: {us_pais_origen},
+     Género: {us_genero}, Orientación: {us_orientacion}, Situación afectiva: {us_situacion_afectiva}, Ha hablado sobre vih: {us_hablado},
+     Tiene vih: {vih_usuario}, Profesional (ámbito: {pro_ambito}, especialidad: {pro_especialidad}, experiencia con vih: {pro_vih_profesional}).
+
+     **Salida Esperada:**
+     Devuelve única y exclusivamente una lista de Python con los ID de las preguntas filtradas seleccionadas. No debes devolver nada más, Solo una lista con los ID seleccionados.
+
+          - **Ejemplo 1** [1, 4, 7]
+          - **Ejemplo 2** [1, 3, 6, 8, 9]
+     """
+
+     # Invocar el modelo
+     response = llm.invoke(prompt)
+     # print("Respuesta del modelo:", response.content)
+
+
+     return diccionario_final_arbol(response.content)
