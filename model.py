@@ -470,10 +470,10 @@ def model_resolutor(id_sesion):
                                  "categoria_user_message": interaction["categoria_user_message"]})
     
     response = llm.invoke(prompt_value)
-    return response
+    db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario="sistema",contenido=response.content,tipo_user_message="", categoria_user_message="", tipo_prompt="resolutor")  
+    return response.content
 
     #Guardamos la información en la tabla de interacciones
-    # db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario="sistema",contenido=response.content,tipo_prompt="resolutor")  
 
 def model_arbol(dict_preg_resp, input):
     '''
@@ -562,9 +562,13 @@ def model_arbol_interaction(id_sesion, dict_preg_resp, user_input,final):
         resp = model_arbol(dict_preg_resp, user_input)
         del(dict_preg_resp[next(iter(dict_preg_resp))])
         final = False
-        #Guardamos la información en la tabla de interacciones
-        # db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario= db_user_interaction(id_sesion)["tipo_usuario"],contenido=resp, tipo_prompt="resolutor")       
+        #Cogemos variables para guardar datos
+        context = db_user_context(id_sesion)
+        interaction = db_user_interaction(id_sesion)
 
+        #Guardamos la información en la tabla de interacciones
+        db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario=interaction["tipo_user_message"],contenido=user_input,tipo_user_message=context["tipo_usuario"], categoria_user_message=interaction["categoria_user_message"], tipo_prompt="arbol_respuesta") ### Pregunta del usuario
+        db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario="sistema",contenido=resp['message'],tipo_user_message="", categoria_user_message="", tipo_prompt="arbol_pregunta") ### Respuesta del sistema
     else:
         final = True
         resp = model_resolutor(id_sesion)
