@@ -176,19 +176,19 @@ def llm_decisor(id_sesion, user_input):
     {"input": "Estoy preocupado porque creo que puedo haber contraído vih, quiero hacerme una prueba rápida", 
         "output": {"tipo": "cerrada",
             "categoria": "divulgacion",
-            "message": "Siento tu malestar"
+            "message": "Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
                     }
     }, 
     {"input": "Me acabo de echar novio y no sé cómo decirle que tengo vih", 
         "output": {"tipo": "cerrada",
                    "categoria": "apoyo",
-                   "message":"Siento tu malestar, no estás solo/a"
+                   "message":"Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
                    }
     },
     {"input": "No sé a quién contarle que tengo vih", 
         "output": {"tipo": "cerrada",
                    "categoria": "apoyo",
-                   "message":"No te preocupes, no estás solo/a. Estamos aquí para ayudarte."
+                   "message":"Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
                    }
     },
     {"input": "Estoy preocupada", 
@@ -247,9 +247,9 @@ def llm_decisor(id_sesion, user_input):
         de forma muy, muy educada y comprensiva, le dirás que no le puedes ayudar en ese tema. Cada vez que te refieras al vih, lo 
         harás en minúscula (nunca pondrás VIH en mayúscula) porque estamos luchando por abolir el estigma de dicha enfermedad. 
         No queremos que incluyas ningún tipo de pregunta en el 'message' (nada de dejar posibilidad a que el usuario tenga que darte
-        otra respuesta), si determinas que el tipo es "cerrada". Si determinas que el tipo es "cerrada", tu fin es cerrar la conversación. No des ningún tipo de solución o respuesta
-        si determinas que el tipo es "cerrada", ya que lo hará un prompt subsiguiente. Nunca realices preguntas en el Output si determinas que el tipo de respuesta
-        es "cerrada".
+        otra respuesta), A NO SER QUE EL TIPO SEA "abierta". Si el tipo es 'cerrada', tu fin es NO PREGUNTAR NADA MÁS, DECIRLE EL SIGUIENTE MENSAJE Y YA TERMINAS, 
+        TU TAREA ACABA AL LANZAR ESTE MENSAJE: "Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa
+        para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcarte que agradecemos mucho tu colaboración
         ''',
         suffix="{input}\nOutput:",
         input_variables=["input"]
