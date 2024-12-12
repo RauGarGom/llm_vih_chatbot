@@ -1,7 +1,7 @@
 FROM python:3.12-slim
-RUN mkdir /src
+# RUN mkdir /src
 WORKDIR /src
-ADD . /src
+COPY . /src
 RUN pip install -r requirements.txt
 
 CMD ["python", "app.py"]

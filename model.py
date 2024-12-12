@@ -467,11 +467,11 @@ def model_resolutor(id_sesion):
                                     "pro_vih_profesional":context["pro_vih_profesional"], "contenido":interaction["contenido"],
                                  "categoria_user_message": interaction["categoria_user_message"]})
     
+    db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario="sistema",contenido=response.content,tipo_user_message=, categoria_user_message.tipo_prompt="resolutor")  
     response = llm.invoke(prompt_value)
     return response
 
     #Guardamos la información en la tabla de interacciones
-    # db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario="sistema",contenido=response.content,tipo_prompt="resolutor")  
 
 def model_arbol(dict_preg_resp, input):
     '''
@@ -561,7 +561,7 @@ def model_arbol_interaction(id_sesion, dict_preg_resp, user_input,final):
         del(dict_preg_resp[next(iter(dict_preg_resp))])
         final = False
         #Guardamos la información en la tabla de interacciones
-        # db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario= db_user_interaction(id_sesion)["tipo_usuario"],contenido=resp, tipo_prompt="resolutor")       
+        db_insert_values_decisor(id_sesion=id_sesion,tipo_usuario= db_user_interaction(id_sesion)["tipo_usuario"],contenido=resp, tipo_prompt="resolutor")       
 
     else:
         final = True
