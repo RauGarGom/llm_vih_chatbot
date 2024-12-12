@@ -531,7 +531,7 @@ def model_arbol(dict_preg_resp, input):
 
     Notas importantes:
     - Siempre que te refieras al vih, utiliza minúsculas.
-    - No brindas información técnica ni abordas temas fuera del vih.''',
+    - No brindas información técnica ni abordas temas fuera del vih. SIEMPRE devuelves una pregunta del listado.''',
         suffix="{input}\nOutput:",
         input_variables=["input", "dict_preg_resp"]
     )
