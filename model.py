@@ -224,7 +224,9 @@ def llm_decisor(id_sesion, user_input):
         input_variables=["input", "output"],
         template= '''Analiza el input del usuario y determina si la cuestión es de tipo "abierta" o "cerrada". En caso de ser cerrada, categoriza
         como "apoyo" o "divulgacion". Si es de tipo "abierta", sigue preguntando hasta que consideres la cuestión como tipo "cerrada".
-        Si la cuestión es cerrada, no hagas ninguna pregunta final en el mensaje. Un prompt externo se encargará de ello.''',
+        Si la cuestión es "cerrada", NO PREGUNTES NADA MÁS NI APORTES NINGÚN RECURSO AL USUARIO, SINO QUE LE DICES ÚNICA Y EXCLUSIVAMENTE EL SIGUIENTE MENSAJE
+        Y YA TU TAREA ACABA AL LANZAR ESTE MENSAJE: "Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa
+        para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcarte que agradecemos mucho tu colaboración''',
         partial_variables={"format_instructions": format_instructions}
     )
 
