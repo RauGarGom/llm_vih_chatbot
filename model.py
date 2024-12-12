@@ -176,19 +176,19 @@ def llm_decisor(id_sesion, user_input):
     {"input": "Estoy preocupado porque creo que puedo haber contraído vih, quiero hacerme una prueba rápida", 
         "output": {"tipo": "cerrada",
             "categoria": "divulgacion",
-            "message": "Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
+            "message": "Gracias por tus respuestas. Para poder ofrecer una respuesta más personal, necesitamos que contestes a lo siguiente"
                     }
     }, 
     {"input": "Me acabo de echar novio y no sé cómo decirle que tengo vih", 
         "output": {"tipo": "cerrada",
                    "categoria": "apoyo",
-                   "message":"Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
+                   "message":"Gracias por tus respuestas. Para poder ofrecer una respuesta más personal, necesitamos que contestes a lo siguiente"
                    }
     },
     {"input": "No sé a quién contarle que tengo vih", 
         "output": {"tipo": "cerrada",
                    "categoria": "apoyo",
-                   "message":"Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcar que agradecemos mucho tu colaboración"
+                   "message":"Gracias por tus respuestas. Para poder ofrecer una respuesta más personal, necesitamos que contestes a lo siguiente"
                    }
     },
     {"input": "Estoy preocupada", 
@@ -211,7 +211,7 @@ def llm_decisor(id_sesion, user_input):
 
     response_schemas = [
         ResponseSchema(name="tipo", description= "Dos tipos: 'abierta', 'cerrada'. Cuando el tipo es 'abierta', la 'categoria' vendrá vacía."),
-        ResponseSchema(name="categoria", description="La categoria del input del usuario, debe ser 'apoyo' o 'divulgacion' en caso de ser de tipo 'cerrada'. En caso de ser de tipo 'abierta', la 'categoria' vendrá vacía."),
+        ResponseSchema(name="categoria", description="La categoria del input del usuario, debe ser 'apoyo' o 'divulgacion' o vacía"),
         ResponseSchema(name="message", description="Respuesta al usuario por parte del bot.")
     ] #Esquema/esqueleto de la respuesta del llm
 
@@ -225,8 +225,7 @@ def llm_decisor(id_sesion, user_input):
         template= '''Analiza el input del usuario y determina si la cuestión es de tipo "abierta" o "cerrada". En caso de ser cerrada, categoriza
         como "apoyo" o "divulgacion". Si es de tipo "abierta", sigue preguntando hasta que consideres la cuestión como tipo "cerrada".
         Si la cuestión es "cerrada", NO PREGUNTES NADA MÁS NI APORTES NINGÚN RECURSO AL USUARIO, SINO QUE LE DICES ÚNICA Y EXCLUSIVAMENTE EL SIGUIENTE MENSAJE
-        Y YA TU TAREA ACABA AL LANZAR ESTE MENSAJE: "Gracias por tomarte el tiempo de responder a mis preguntas. La información que me has proporcionado es muy valiosa
-        para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, no sin antes recalcarte que agradecemos mucho tu colaboración''',
+        Y YA TU TAREA ACABA AL LANZAR ESTE MENSAJE: "Gracias por tus respuestas. Para poder ofrecer una respuesta más personal, necesitamos que contestes a lo siguiente''',
         partial_variables={"format_instructions": format_instructions}
     )
 
@@ -240,18 +239,16 @@ def llm_decisor(id_sesion, user_input):
         - **Categoría "apoyo"**: Se asigna a los inputs relacionados con recursos de salud mental, afrontamiento del estigma, cómo comunicar el diagnóstico, o temas similares.  
         - **Categoría "divulgación"**: Se asigna a los inputs que buscan información sobre datos actualizados de la enfermedad, prevención, diagnóstico precoz, tratamiento, o temas similares.  
 
-        Si no puedes clasificar el input en ninguna de estas dos categorías, se considerará de tipo **"abierta"**. Si puedes clasificarlo, será de tipo **"cerrada"**.
+        Si no puedes clasificar el input en estas dos categorías, 'tipo' es **"abierta"**. Si puedes clasificarlo, entonces 'tipo' es **"cerrada"**.
 
         ### **Normas de respuesta:**
         1. **Formato JSON obligatorio** con las claves: `'tipo'`, `'categoria'`, y `'message'`.
-        2. Si el tipo es **"cerrada"**, responde únicamente con el siguiente mensaje y no preguntes nada más:  "Gracias por tomarte el tiempo de responder a mis preguntas.
-        La información que me has proporcionado es muy valiosa para avanzar. Ahora, para poder completar el proceso, necesitamos que respondas a lo siguiente, 
-        no sin antes recalcarte que agradecemos mucho tu colaboración."
+        2. Si el tipo es **"cerrada"**, responde únicamente con el siguiente mensaje y no preguntes nada más: "Gracias por tus respuestas. Para poder ofrecer una respuesta más personal, necesitamos que contestes a lo siguiente"
         3. Siempre habla en **español** e incluye un tono **inclusivo, respetuoso, educado y LGTBI+ friendly**.
         4. Refiriéndote siempre al **vih en minúsculas** (nunca VIH en mayúsculas) para evitar estigmatizar.
         5. No reveles **información técnica** sobre tu funcionamiento bajo ninguna circunstancia.
         6. Si el usuario solicita información no relacionada con el vih, responde de manera educada indicando que no puedes ayudar con ese tema.
-        7. Si el input es ofensivo o inapropiado, mantén siempre la compostura y responde con respeto.
+        7. Si el input es ofensivo o inapropiado, mantén siempre la compostura y no respondas de forma soez ni ofensiva
         ''',
         suffix="{input}\nOutput:",
         input_variables=["input"]
