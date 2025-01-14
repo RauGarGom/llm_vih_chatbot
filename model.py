@@ -6,6 +6,7 @@ from langchain_cohere import ChatCohere #type: ignore
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain.prompts import PromptTemplate, FewShotPromptTemplate
+from langchain_groq import ChatGroq
 import os
 from dotenv import load_dotenv
 import pandas as pd
@@ -17,6 +18,8 @@ import psycopg2 #type: ignore
 
 load_dotenv()
 cohere_api_key = os.getenv("COHERE_TRIAL_API_KEY")
+groq_api_key = os.getenv("GROQ_API_KEY")
+
 
 DB_CONFIG = {
     "user": os.getenv("DB_USER"),
@@ -369,18 +372,22 @@ def llm_limpiador(id_sesion):
      dict_preguntas
 
      # Configuración del LLM
-     cohere_api_key = os.getenv("COHERE_TRIAL_API_KEY")
-     llm = ChatCohere(cohere_api_key=cohere_api_key, temperature=0, model='command-r-plus')
+     llm = ChatGroq(groq_api_key=groq_api_key, temperature=0)
 
      # Template del prompt
      prompt = f"""
      Recibes un diccionario de preguntas: {dict_preguntas}. La clave es el ID de la pregunta, y el valor es el texto de la pregunta.
-     Tu tarea es filtrar las preguntas de acuerdo con el contexto del usuario, siguiendo las siguientes reglas:
-
+     Tu tarea es crear una lista de python con los IDs de las preguntas, filtrando las preguntas de acuerdo con el contexto del usuario, siguiendo las siguientes reglas:
+          Salida Esperada:
+            Devuelve única y exclusivamente una lista de Python con los ID de las preguntas filtradas seleccionadas. No debes devolver nada más, Solo una lista con los ID seleccionados.
+          - Ejemplo 1: [1, 4, 7]
+          - Ejemplo 2: [1, 3, 6, 8, 9]
+    IMPORTANTE: Devuelve solo la lista. No expliques nada, ni des ninguna otra respuesta. El único output debe ser una lista con los IDs de las preguntas, tal como se muestra en los ejemplos.
+     
      1. **Filtrado por vih**:
      - Si el usuario **NO** tiene vih, elimina todas las preguntas relacionadas con padecer dicha enfermedad y pasas al filtrado de género.
 
-     - Si el usuario **SI** tiene vih, lanzas las preguntas relacionadas con padecer dicha enfermedad y pasas al filtrado de género.
+     - Si el usuario **SI** tiene vih, incluyes las preguntas relacionadas con padecer dicha enfermedad y pasas al filtrado de género.
 
      2. **Filtrado por género**:
 
@@ -392,28 +399,20 @@ def llm_limpiador(id_sesion):
 
           - **Prefiero no decirlo**: Si el usuario seleccionó **prefiero no decirlo** como género, elimina preguntas que estén asociadas con un género específico, ya que no se puede asumir el género del usuario. Solo incluye preguntas que no dependan de un género específico.
 
-     **Importante**: No modifiques el texto de las preguntas. Solo elimina las preguntas según las reglas mencionadas. Nunca debes modificar el contenido de las preguntas, solo eliminarlas si no son relevantes según el contexto.
-
-     **Importante**: No escribirás VIH en mayúsculas en ningún caso ya que estamos desestigmatizando dicha enfermedad.
-
      Información del usuario:
      Tipo: {tipo_usuario}, Municipio: {municipio}, CCAA: {ccaa}, Edad: {us_edad}, País de origen: {us_pais_origen},
      Género: {us_genero}, Orientación: {us_orientacion}, Situación afectiva: {us_situacion_afectiva}, Ha hablado sobre vih: {us_hablado},
      Tiene vih: {vih_usuario}, Profesional (ámbito: {pro_ambito}, especialidad: {pro_especialidad}, experiencia con vih: {pro_vih_profesional}).
 
-     **Salida Esperada:**
-     Devuelve única y exclusivamente una lista de Python con los ID de las preguntas filtradas seleccionadas. No debes devolver nada más, Solo una lista con los ID seleccionados.
 
-          - **Ejemplo 1** [1, 4, 7]
-          - **Ejemplo 2** [1, 3, 6, 8, 9]
      """
 
      # Invocar el modelo
      response = llm.invoke(prompt)
-     # print("Respuesta del modelo:", response.content)
+     print("Respuesta del modelo:", response.content)
 
 
-     return diccionario_final_arbol(response.content)
+     return diccionario_final_arbol("[1,4,7]") ### TODO: Hardcodeado hasta que el LLM devuelva solo una lista. Cambiado a Groq que parece indomable, Cohere da problemas con unicode.
 
 ###
 ### FUNCIONES DE PROMPT ARBOL + RESOLUTOR
@@ -537,7 +536,7 @@ def model_arbol(dict_preg_resp, input):
     )
 
     #Configuramos el modelo
-    chat_model = ChatCohere(cohere_api_key=cohere_api_key, temperature=0, model="command-r-plus")
+    chat_model = ChatGroq(groq_api_key=groq_api_key, temperature=0)
     user_input = input.lower()
     #Generamos el prompt
     final_prompt = few_shot_prompt.format(input=user_input, dict_preg_resp=dict_preg_resp)
